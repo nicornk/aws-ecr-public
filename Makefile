@@ -1,8 +1,5 @@
 TEMPLATE ?= dist/aws-ecr-public.template.json
-STACK_NAME ?= aws-ecr-public
-VALIDATION_DOMAIN ?= ""
-DOMAIN_NAME ?= ""
-VALIDATION_METHOD ?= "EMAIL"
+STACK_NAME ?= aws-lambda-docker
 
 VERSION = 1.2.0
 
@@ -16,9 +13,6 @@ test: build
 		--stack-name $(STACK_NAME) \
 		--capabilities CAPABILITY_IAM \
 		--parameter-overrides \
-			ValidationDomain=$(VALIDATION_DOMAIN) \
-			DomainName=$(DOMAIN_NAME) \
-			ValidationMethod=$(VALIDATION_METHOD) \
 			AuthBasicUsername=foo \
 			AuthBasicPassword=bar \
 			Authorizer=BASIC

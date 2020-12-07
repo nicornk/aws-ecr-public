@@ -8,49 +8,25 @@ Metadata:
     ParameterGroups:
       - Label: { default: Configuration }
         Parameters:
-          - ValidationDomain
-          - DomainName
-          - ValidationMethod
           - Authorizer
       - Label: { default: Basic Authentication }
         Parameters:
           - AuthBasicUsername
           - AuthBasicPassword
-      - Label: { default: Azure DevOps Authentication }
-        Parameters:
-          - AuthAzureDevOpsOrg
       - Label: { default: Custom Lambda Authentication }
         Parameters:
           - AuthCustomLambdaArn
     ParameterLabels:
-      ValidationDomain: { default: Validation Domain }
-      DomainName: { default: Domain Name }
-      ValidationMethod: { default: Validation Method }
       AuthBasicUsername: { default: Username }
       AuthBasicPassword: { default: Password }
-      AuthAzureDevOpsOrg: { default: DevOps Organization Name }
       AuthCustomLambdaArn: { default: Lambda ARN }
 
 
 Parameters:
-  ValidationDomain:
-    Type: String
-    Default: ''
-    Description: Overwrite default validation domain for ACM certificate.
-  DomainName:
-    Type: String
-    Default: ''
-    Description: If provided, an ACM Certificate and API Domain Name will be created.
-  ValidationMethod:
-    Type: String
-    Default: EMAIL
-    AllowedValues: [EMAIL, DNS]
-    Description: Choose a validation method for the ACM certificate, only relevant if a Domain Name was provided.
-
   Authorizer:
     Type: String
     Default: NONE
-    AllowedValues: [NONE, BASIC, AZURE_DEVOPS, CUSTOM]
+    AllowedValues: [NONE, BASIC, CUSTOM]
     Description: Add an authorizer to your registry. Make sure to provide details below.
 
   AuthBasicUsername:
@@ -62,19 +38,12 @@ Parameters:
     Default: ''
     NoEcho: true
 
-  AuthAzureDevOpsOrg:
-    Type: String
-    Default: ''
-    Description: Provide the name of the Azure DevOps organization that is allowed to authenticate. The username is ADO, the password is the System.AccessToken or user token.
-
   AuthCustomLambdaArn:
     Type: String
     Default: ''
     Description: Provide the full ARN to a custom authorizer function. Permissions will be added automatically.
 
 Conditions:
-  HasValidationDomain: !Not [ !Equals [ !Ref ValidationDomain, '' ] ]
-  HasDomainName: !Not [ !Equals [ !Ref DomainName, '' ] ]
   HasAuthorizer: !Not [ !Equals [ !Ref Authorizer, NONE ] ]
   HasCustomAuthorizer: !Equals [ !Ref Authorizer, CUSTOM ]
 
@@ -135,45 +104,13 @@ Resources:
             integrationLatency: $context.integrationLatency
             error: $context.error
 
-  Certificate:
-    Type: AWS::CertificateManager::Certificate
-    Condition: HasDomainName
-    Properties:
-      DomainName: !Ref DomainName
-      ValidationMethod: !Ref ValidationMethod
-      DomainValidationOptions:
-        Fn::If:
-          - HasValidationDomain
-          - - DomainName: !Ref DomainName
-              ValidationDomain: !Ref ValidationDomain
-          - !Ref AWS::NoValue
-
-  ApiDomainName:
-    Type: AWS::ApiGateway::DomainName
-    Condition: HasDomainName
-    Properties:
-      RegionalCertificateArn: !Ref Certificate
-      DomainName: !Ref DomainName
-      EndpointConfiguration:
-        Types: [REGIONAL]
-
-  BasePathMapping:
-    Type: AWS::ApiGateway::BasePathMapping
-    Condition: HasDomainName
-    DependsOn: Apiv2Stage
-    Properties:
-      BasePath: v2
-      DomainName: !Ref ApiDomainName
-      RestApiId: !Ref Api
-      Stage: v2
-
   ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: index.handler
-      Runtime: nodejs12.x
-      InlineCode: !Include { type: string, location: lambda/api.js }
-      Timeout: 30
+      PackageType: Image
+      MemorySize: 5000
+      Timeout: 120
+      ImageUri: 684279770417.dkr.ecr.eu-west-1.amazonaws.com/utilization-management-dev-storage@sha256:b23188a7a50d81973c0bb41efbeef5143ea3ededfe60b0bdab879e1b04cb792c
       Events:
         Api:
           Type: Api
@@ -181,14 +118,6 @@ Resources:
             Path: /{proxy+}
             Method: ANY
             RestApiId: !Ref Api
-      Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - ecr:GetDownloadUrlForLayer
-                - ecr:BatchGetImage
-              Resource: '*'
 
   AuthorizerFunction:
     Type: AWS::Serverless::Function
@@ -200,7 +129,6 @@ Resources:
       Timeout: 30
       Environment:
         Variables:
-          ADO_ORG: !Ref AuthAzureDevOpsOrg
           BASIC_USER: !Ref AuthBasicUsername
           BASIC_PASSWORD: !Ref AuthBasicPassword
           METHOD: !Ref Authorizer
@@ -220,14 +148,6 @@ Outputs:
     Value: !Sub ${Api}.execute-api.${AWS::Region}.amazonaws.com
     Export:
       Name: !Sub ${AWS::StackName}:ApiDomainName
-  RegionalDomainName:
-    Value: !If [ HasDomainName, !GetAtt ApiDomainName.RegionalDomainName, 'null']
-    Export:
-      Name: !Sub ${AWS::StackName}:RegionalDomainName
-  RegionalHostedZoneId:
-    Value: !If [ HasDomainName, !GetAtt ApiDomainName.RegionalHostedZoneId, 'null']
-    Export:
-      Name: !Sub ${AWS::StackName}:RegionalHostedZoneId
   LambdaExecutionRoleName:
     Value: !Ref ApiFunctionRole
     Export:

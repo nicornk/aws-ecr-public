@@ -37,19 +37,32 @@ paths:
   /:
     get:
       <<: *request
-      x-amazon-apigateway-integration:
-        responses:
-          default:
-            statusCode: 200
-        passthroughBehavior: when_no_match
-        requestTemplates:
-          application/json: "{\"statusCode\": 200}"
-        type: mock
-
+    head:
+      <<: *request
+    put:
+      <<: *request
+    post:
+      <<: *request
+    delete:
+      <<: *request
+    options:
+      <<: *request
+    patch:
+      <<: *request
   /{proxy+}:
     get:
       <<: *request
     head:
+      <<: *request
+    put:
+      <<: *request
+    post:
+      <<: *request
+    delete:
+      <<: *request
+    options:
+      <<: *request
+    patch:
       <<: *request
 
 components:
@@ -64,7 +77,7 @@ components:
           x-amazon-apigateway-authorizer:
             authorizerUri:
               Fn::Sub:
-                - arn:aws:apigateway:us-east-2:lambda:path/2015-03-31/functions/${AuthorizerLambdaArn}/invocations
+                - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerLambdaArn}/invocations
                 - AuthorizerLambdaArn: !If [ HasCustomAuthorizer, !Ref AuthCustomLambdaArn, !GetAtt AuthorizerFunction.Arn ]
             authorizerResultTtlInSeconds: 300
             type: token
