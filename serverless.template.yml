@@ -9,6 +9,7 @@ Metadata:
       - Label: { default: Configuration }
         Parameters:
           - Authorizer
+          - ImageUri
       - Label: { default: Basic Authentication }
         Parameters:
           - AuthBasicUsername
@@ -20,6 +21,7 @@ Metadata:
       AuthBasicUsername: { default: Username }
       AuthBasicPassword: { default: Password }
       AuthCustomLambdaArn: { default: Lambda ARN }
+      ImageUri: {default: Lambda Image Uri}
 
 
 Parameters:
@@ -28,6 +30,11 @@ Parameters:
     Default: NONE
     AllowedValues: [NONE, BASIC, CUSTOM]
     Description: Add an authorizer to your registry. Make sure to provide details below.
+  
+  ImageUri:
+    Type: String
+    Default: ''
+    Description: Provide the full image uri of docker image stored in ECR. <aws_account_id>.dkr.ecr.<region>.amazonaws.com/<repository-name>@<image-digest>
 
   AuthBasicUsername:
     Type: String
@@ -110,7 +117,7 @@ Resources:
       PackageType: Image
       MemorySize: 5000
       Timeout: 120
-      ImageUri: 684279770417.dkr.ecr.eu-west-1.amazonaws.com/utilization-management-dev-storage@sha256:b23188a7a50d81973c0bb41efbeef5143ea3ededfe60b0bdab879e1b04cb792c
+      ImageUri: !Ref ImageUri
       Events:
         Api:
           Type: Api
@@ -125,7 +132,7 @@ Resources:
     Properties:
       Handler: index.handler
       Runtime: nodejs12.x
-      InlineCode: !Include { type: string, location: lambda/authorizer.js }
+      InlineCode: !Include { type: string, location: authorizer-lambda/authorizer.js }
       Timeout: 30
       Environment:
         Variables:

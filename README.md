@@ -28,30 +28,14 @@ If you would like to make your registries publicly available then this solution 
 
 | Parameter | Required | Description |
 | -- | -- | -- |
-| DomainName | No | If provided an ACM Certificate and API Domain Name will be created
-| ValidationDomain | No | Overwrite default Validation Domain for ACM Certificate
-| ValidationMethod | Yes, default to `EMAIL` | Allow you to use `DNS` instead of `EMAIL` for Certificate validation
-| Authorizer | No, defaults to `NONE` | Valid values are `NONE`, `BASIC`, `AZURE_DEVOPS` or `CUSTOM`
+| Authorizer | No, defaults to `NONE` | Valid values are `NONE`, `BASIC` or`CUSTOM`
 | AuthBasicUsername | If Authorizer is `BASIC` | Username for Basic authentication
 | AuthBasicPassword | If Authorizer is `BASIC` | Password for Basic authentication
-| AuthAzureDevOpsOrg | If Authorizer is `AZURE_DEVOPS` | Organization name in Azure Devops
 | AuthCustomLambdaArn | If Authorizer is `CUSTOM` | ARN of your custom Lambda authorizer
 
 ## Authorizers
 
-This template ships with support for Basic authentication, Azure Devops (using system or access token) and custom Lambda.
-
-Azure DevOps Pipeline example:
-
-```yaml
-# username must be ADO
-steps:
-- script: |
-    echo $TOKEN | docker login --username ADO --password-stdin example.execute-api.us-east-2.amazonaws.com
-    docker pull example.execute-api.us-east-2.amazonaws.com/nginx:latest
-  env:
-    TOKEN: $(System.AccessToken)
-```
+This template ships with support for Basic authentication or custom Lambda.
 
 ## FAQ
 
